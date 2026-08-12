@@ -739,6 +739,30 @@
         font-weight: 700;
       }
 
+      /* Suspend Pop-up */
+      .suspense-box {
+        position: absolute;
+        inset: 20px;
+        background: #1C1814;
+        border: 2px solid var(--saffron);
+        border-radius: 18px;
+        z-index: 100;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 30px;
+        text-align: center;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+        animation: fadeUp 0.4s cubic-bezier(.34, 1.56, .64, 1);
+      }
+
+      .suspense-icon {
+        font-size: 50px;
+        margin-bottom: 16px;
+        animation: shakePulse 0.6s infinite alternate;
+      }
+
       #confetti-canvas {
         position: absolute;
         inset: 0;
@@ -914,10 +938,11 @@
             <div class="avatar-name">Gossip Coordinator</div>
             <div class="avatar-desc">The core listener, keeper of real secrets, and chief life advisor.</div>
           </div>
-          <div class="avatar-card" data-emoji="👟" data-name="Short-Stack">
-            <div class="avatar-icon">👟</div>
-            <div class="avatar-name">Short-Stack</div>
-            <div class="avatar-desc">Compact chassis: low center of gravity, infinite sibling kinetic energy.</div>
+          <div class="avatar-card" data-emoji="🤏" data-name="Microscopic Dynamo">
+            <div class="avatar-icon">🤏</div>
+            <div class="avatar-name">Microscopic Dynamo</div>
+            <div class="avatar-desc">Compact build. Mistaken for a dashboard ornament. Highly hostile towards tape
+              measures.</div>
           </div>
           <div class="avatar-card" data-emoji="🧠" data-name="Sarcastic Strategist">
             <div class="avatar-icon">🧠</div>
@@ -969,9 +994,10 @@
           <div class="form-group">
             <label for="complaintSelect">SELECT PRIMARY GRIEVANCE</label>
             <select class="form-select" id="complaintSelect">
+              <option value="suspense">Starts sharing amazing gossip, then says "forget it, I'll tell you later"
+              </option>
               <option value="memes">Shares exceptionally low-tier or outdated memes at 3 AM</option>
               <option value="singing">Performs unsolicited, highly unprovoked vocal recitals</option>
-              <option value="advice">Provides unqualified, deeply philosophical adulting advice</option>
               <option value="lateness">Exhibits complete disregard for agreed arrival times (chronically late)</option>
             </select>
           </div>
@@ -1040,6 +1066,18 @@
 
       <!-- REVEAL -->
       <div class="screen" id="screen-reveal">
+        <!-- Suspense Rage Bait Intervention Card -->
+        <div class="suspense-box" id="suspenseBlock">
+          <div class="suspense-icon">⚠️</div>
+          <h3 style="font-family:'Orbitron',sans-serif; color: var(--saffron); margin-bottom: 8px;">SECURITY BLOCK</h3>
+          <p style="font-size: 14px; line-height: 1.5; color: var(--cream); margin-bottom: 20px;" id="suspenseBaitText">
+            Information quarantined. System indicates you are highly eager to complete decryption. Actually, on second
+            thought... I should probably tell you the rest next month.
+          </p>
+          <button class="pulse-btn" id="confrontBtn"
+            style="animation: none; background: var(--danger); color: white;">DEMAND EXPLANATION 😤</button>
+        </div>
+
         <canvas id="confetti-canvas"></canvas>
         <div class="garage-scene">
           <div id="shakePrompt" class="shake-prompt">
@@ -1105,6 +1143,10 @@
           chord.forEach((freq, idx) => {
             setTimeout(() => playTone(freq, 'sine', 0.4, 0.05), idx * 60);
           });
+        },
+        disappoint: () => {
+          playTone(300, 'sawtooth', 0.4, 0.15);
+          setTimeout(() => playTone(220, 'sawtooth', 0.6, 0.15), 200);
         }
       };
 
@@ -1128,15 +1170,15 @@
           correct: 2
         },
         {
-          emoji: "🎂",
-          q: "What were we actually doing here?",
+          emoji: "📏",
+          q: "What is your legally documented physical vertical height, honestly speaking?",
           options: [
-            "Studying (lol)",
-            "Celebrating your birthday",
-            "Getting scolded by faculty",
-            "Planning world domination"
+            "Basically microscopic",
+            "Slightly taller than a standard garden gnome",
+            "I am an average-sized human and this question is height-shaming me",
+            "I need a step-stool to look over the kitchen counter"
           ],
-          correct: 1
+          correct: 2 // Plays into her defense mechanism!
         },
         {
           emoji: "🌧️",
@@ -1150,15 +1192,15 @@
           correct: 0
         },
         {
-          emoji: "🎤",
-          q: "What's the one thing you always tease me about?",
+          emoji: "🎂",
+          q: "What were we actually doing here?",
           options: [
-            "My singing at 5am",
-            "My code comments",
-            "My Hindi shayari",
-            "All of the above, obviously"
+            "Studying (lol)",
+            "Celebrating your birthday",
+            "Getting scolded by faculty",
+            "Planning world domination"
           ],
-          correct: 3
+          correct: 1
         },
         {
           emoji: "🚗",
@@ -1176,7 +1218,19 @@
       const wrongLines = ["Target missed. Try again.", "No record matches.", "Recalculate coordinates.", "Correction required."];
       const correctLines = ["Nailed it! 🏎️", "Match found. Moving forward.", "Seamless logic.", "Perfect calibration."];
 
+      // Suspense build-up text
+      const suspenseBaitLines = [
+        "So, before you read the final message, I have to tell you this one absolutely insane thing that happened yesterday. It completely changes everything about our meeting at your place... you're literally not going to believe who called me...",
+        "Wait, let me explain... actually, you know what? It's a really long story. I'll just tell you when I get to your place. Keep waiting! 😉"
+      ];
+
+      const revealMessage = "Happy Raksha Bandhan! Since we are meeting at your place, this console was just a digital warm-up. The actual physical presence, sweet threats, and dynamic gossip streams are unlocking very soon. Keep the snacks fully stocked. 💜";
+
       const ticketResponses = {
+        suspense: [
+          "LOG: Ticket logged successfully under 'Cruel Sibling Behaviors'.\nRESPONSE: Oh, that incredibly juicy story I started telling you yesterday? I forgot what it was. I'll tell you next month. Or never.",
+          "LOG: Action aborted.\nRESPONSE: Sibling's response database locked. Suspense levels maximized to maintain absolute operational control."
+        ],
         memes: [
           "LOG: Complaint analyzed. Action: MEME RE-INDEXING.\nRESPONSE: Brother is currently operating on a legacy database. Action queued: Inject better comedy into his system.",
           "LOG: Ticket status: ESCALATED.\nRESPONSE: Brother states: 'My humor is intellectually sophisticated'. Investigation ongoing."
@@ -1184,10 +1238,6 @@
         singing: [
           "LOG: High decibel reading detected.\nRESPONSE: Performance levels analyzed. Brother's frequency output is classified as a physical disturbance. Mute protocol failed.",
           "LOG: Ticket status: BLOCKED.\nRESPONSE: Brother responds: 'This is high art, you simply lack the artistic ear'."
-        ],
-        advice: [
-          "LOG: Sarcastic threshold crossed.\nRESPONSE: Warning: Brother's philosophy engine is uncalibrated. Advice rejected by standard memory stack. Proceed to ignore safely.",
-          "LOG: Ticket status: RESOLVED BY SARCASM.\nRESPONSE: Sibling has successfully rolled eyes at a record speed of 450 RPM."
         ],
         lateness: [
           "LOG: Locating brother's coordinates...\nRESPONSE: ETA calculations show he is operating on standard '5 minutes away' latency loop. Real distance: 8 kilometers.",
@@ -1491,7 +1541,9 @@
         resetRevealLocked();
       });
 
-      // ---------------- REVEAL ----------------
+      // ---------------- REVEAL & SUSPENSE RAGE BAIT PROTOCOL ----------------
+      let suspStep = 0;
+
       function resetRevealLocked() {
         document.getElementById('shakePrompt').style.display = 'flex';
         document.getElementById('carEmoji').classList.remove('reveal');
@@ -1499,6 +1551,8 @@
         document.getElementById('shine').classList.remove('sweep');
         document.getElementById('revealTitle').classList.remove('in');
         document.getElementById('revealMsg').textContent = '';
+        document.getElementById('suspenseBlock').style.display = 'none';
+        suspStep = 0;
       }
 
       document.getElementById('shakePrompt').addEventListener('click', unlockReveal);
@@ -1535,12 +1589,66 @@
           heading.classList.add('in');
         }, 100);
 
-        setTimeout(renderTypewriter, 1600);
-        setTimeout(triggerFullConfetti, 900);
+        // Trigger typewriter for the Suspense Build Up
+        setTimeout(renderSuspenseTypewriter, 1600);
       }
 
-      function renderTypewriter() {
+      function renderSuspenseTypewriter() {
         const element = document.getElementById('revealMsg');
+        let cursorIdx = 0;
+        const cursor = document.createElement('span');
+        cursor.className = 'typewriter-cursor';
+
+        const baitText = suspenseBaitLines[0];
+
+        function step() {
+          if (cursorIdx <= baitText.length) {
+            element.textContent = baitText.slice(0, cursorIdx);
+            element.appendChild(cursor);
+            cursorIdx++;
+            if (cursorIdx % 2 === 0) {
+              playTone(620 + (cursorIdx % 6) * 15, 'sine', 0.02, 0.01);
+            }
+            setTimeout(step, 30);
+          } else {
+            cursor.remove();
+            // Right after finishing the suspense build up, pop up the block card!
+            setTimeout(triggerSuspensePopUp, 1000);
+          }
+        }
+        step();
+      }
+
+      function triggerSuspensePopUp() {
+        sfx.disappoint();
+        document.getElementById('suspenseBlock').style.display = 'flex';
+      }
+
+      // Confronting the block
+      document.getElementById('confrontBtn').addEventListener('click', () => {
+        sfx.click();
+        const block = document.getElementById('suspenseBlock');
+        const baitTextEl = document.getElementById('suspenseBaitText');
+        const btn = document.getElementById('confrontBtn');
+
+        if (suspStep === 0) {
+          sfx.disappoint();
+          baitTextEl.textContent = suspenseBaitLines[1];
+          btn.textContent = "WAIT, TELL ME NOW! 😤";
+          suspStep = 1;
+        } else {
+          // She demanded explanation twice, now reward her with real confetti and sweet message
+          block.style.display = 'none';
+          triggerRealSecretReveal();
+        }
+      });
+
+      function triggerRealSecretReveal() {
+        sfx.correct();
+        triggerFullConfetti();
+
+        const element = document.getElementById('revealMsg');
+        element.textContent = '';
         let cursorIdx = 0;
         const cursor = document.createElement('span');
         cursor.className = 'typewriter-cursor';
