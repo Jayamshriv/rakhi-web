@@ -248,7 +248,6 @@
         }
       }
 
-      /* Ripple effect for .btn and .pulse-btn */
       .btn,
       .pulse-btn {
         position: relative;
@@ -605,6 +604,14 @@
         font-size: 72px;
         border: 1px solid #332C24;
         perspective: 800px;
+        overflow: hidden;
+      }
+
+      .photo-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 18px;
       }
 
       .photo-frame.flip-in {
@@ -694,10 +701,20 @@
         animation: canWobble 1.6s ease-in-out infinite;
       }
 
-      @keyframes canWobble {
+      @keyframes intenseShake {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        20% { transform: translate(-3px, 3px) rotate(-3deg); }
+        40% { transform: translate(3px, -2px) rotate(3deg); }
+        60% { transform: translate(-3px, -3px) rotate(-2deg); }
+        80% { transform: translate(3px, 3px) rotate(4deg); }
+      }
 
-        0%,
-        100% {
+      .can-shell.shaking {
+        animation: intenseShake 0.15s infinite;
+      }
+
+      @keyframes canWobble {
+        0%, 100% {
           transform: rotate(-2deg);
         }
 
@@ -726,6 +743,15 @@
         background: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.5) 0 4px, transparent 4px 10px);
         opacity: .5;
         animation: fizzBubble 1s linear infinite;
+      }
+
+      .fizz-bubble {
+        position: absolute;
+        background: rgba(159, 232, 112, 0.7);
+        border-radius: 50%;
+        pointer-events: none;
+        bottom: 0;
+        z-index: 4;
       }
 
       @keyframes fizzBubble {
@@ -887,7 +913,7 @@
 
       #termsBtnContainer {
         position: relative;
-        height: 100px;
+        height: 120px;
         width: 100%;
         margin-top: auto;
       }
@@ -897,7 +923,10 @@
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
-        transition: left 0.15s ease-out, top 0.15s ease-out;
+        transition: left 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.2),
+                    top 0.15s cubic-bezier(0.18, 0.89, 0.32, 1.2),
+                    transform 0.15s ease,
+                    background 0.2s ease;
       }
 
       /* SINCERITY MODULE (WARMTH) */
@@ -1361,7 +1390,7 @@
             id="monsterText"></div>
 
           <div class="can-rig">
-            <div class="can-shell">
+            <div class="can-shell" id="canShell">
               <div class="can-fill" id="canFill"></div>
               <div class="can-bolt">⚡</div>
               <div class="can-claws" id="canClaws"></div>
@@ -1534,7 +1563,6 @@
       let isSoundEnabled = true;
       let audioCtx = null;
 
-      // Created lazily on the first user gesture, per browser autoplay-policy requirements
       function ensureAudioCtx() {
         if (!audioCtx) {
           audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -1608,7 +1636,6 @@
       }
 
       // ---------------- HAPTICS ----------------
-      // Small vibration pulses on key moments, on devices/browsers that support it. No-op elsewhere.
       function buzz(pattern) {
         if (navigator.vibrate) {
           try { navigator.vibrate(pattern); } catch (e) { }
@@ -1622,9 +1649,12 @@
       });
 
       // ---------------- PERSONAL MEMORIES TRIVIA CONTENT ----------------
+      // Add custom image paths in the "img" key below (e.g. "images/goa.jpg").
+      // If left empty or if it fails to load, the system falls back to the emoji icon gracefully.
       const questions = [
         {
           emoji: "🏖️",
+          img: "", 
           q: "Where was this photo taken?",
           options: [
             "Goa 2022",
@@ -1636,6 +1666,7 @@
         },
         {
           emoji: "📏",
+          img: "", 
           q: "What is your legally documented physical vertical height, honestly speaking?",
           options: [
             "Basically microscopic",
@@ -1647,6 +1678,7 @@
         },
         {
           emoji: "🌧️",
+          img: "", 
           q: "Finish the memory: 'That one rainy day when...'",
           options: [
             "We got soaked walking back",
@@ -1658,6 +1690,7 @@
         },
         {
           emoji: "🎂",
+          img: "", 
           q: "What were we actually doing here?",
           options: [
             "Studying (lol)",
@@ -1669,6 +1702,7 @@
         },
         {
           emoji: "🚗",
+          img: "", 
           q: "Last one. What are we like, honestly?",
           options: [
             "Just friends",
@@ -1684,7 +1718,6 @@
       const correctLines = ["Nailed it! 🏎️", "Match found. Moving forward.", "Seamless logic.", "Perfect calibration."];
 
       // ---------------- SINCERITY MODULE CONTENT ----------------
-      // Warm, sincere lines shown just before the roast — edit freely.
       const WARMTH_LINES = [
         "Before this gets silly again, I mean this part.",
         "You've shown up for every version of me — the confident one, the anxious one, the one who forgets to call back.",
@@ -1693,8 +1726,6 @@
       ];
 
       // ---------------- HEIGHT ROAST DATA ----------------
-      // Comparison bars for the "diagnostic report" — heights in cm.
-      // TODO: swap the "You" value for her actual height so the joke lands right.
       const ROAST_ROWS = [
         { label: "Standard Door Handle", cm: 100 },
         { label: "Kitchen Counter", cm: 90 },
@@ -1769,7 +1800,7 @@
       }
       updateProgressDots('intro');
 
-      // ---------------- RIPPLE EFFECT (delegated to all .btn / .pulse-btn) ----------------
+      // ---------------- RIPPLE EFFECT ----------------
       document.addEventListener('click', (e) => {
         const target = e.target.closest('.btn, .pulse-btn');
         if (!target || target.disabled) return;
@@ -1877,7 +1908,6 @@
         contBtn.style.display = 'none';
         useSimulatedScanner = false;
 
-        // Safeguard against local file context (file://) where mediaDevices doesn't exist
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
           switchToRadarMode();
           return;
@@ -1888,10 +1918,8 @@
             video: { facingMode: "user" }
           });
           video.srcObject = cameraStream;
-          // Explicit play triggers on iOS mobile browsers
           video.onloadedmetadata = () => {
             video.play().catch(() => {
-              // Fallback if browser autoplays get blocked
               switchToRadarMode();
             });
           };
@@ -1923,7 +1951,6 @@
         ctx.fillStyle = "#0D0A08";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw police wall grid on captured frame
         ctx.strokeStyle = "rgba(138, 129, 119, 0.3)";
         ctx.lineWidth = 1;
         for (let i = 20; i < canvas.height; i += 40) {
@@ -1938,36 +1965,31 @@
           ctx.fillText(heightLabel, 10, i - 4);
         }
 
-        // Force crop her onto the bottom 2-foot line
         if (!useSimulatedScanner && cameraStream && video.readyState === video.HAVE_ENOUGH_DATA) {
           const targetH = 100;
           const targetW = 100;
-          const targetY = canvas.height - targetH - 10; // situated right at 2ft line
+          const targetY = canvas.height - targetH - 10;
           const targetX = (canvas.width - targetW) / 2;
           ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, targetX, targetY, targetW, targetH);
         } else {
-          // Canvas Stick Figure Fallback (Highly visible stick figure at the bottom 2ft mark)
           ctx.strokeStyle = "#FFA55C";
           ctx.lineWidth = 4;
 
-          // Head (situated around Y = 220, matching the 2-foot line)
           ctx.beginPath();
           ctx.arc(160, 215, 14, 0, Math.PI * 2);
           ctx.fill();
 
-          // Body / Limbs
           ctx.beginPath();
           ctx.moveTo(160, 229);
-          ctx.lineTo(160, 265); // Spine
+          ctx.lineTo(160, 265);
           ctx.moveTo(142, 245);
-          ctx.lineTo(178, 245); // Arms
+          ctx.lineTo(178, 245);
           ctx.moveTo(160, 265);
-          ctx.lineTo(148, 305); // Left Leg
+          ctx.lineTo(148, 305);
           ctx.moveTo(160, 265);
-          ctx.lineTo(172, 305); // Right Leg
+          ctx.lineTo(172, 305);
           ctx.stroke();
 
-          // Tiny emoji annotation label
           ctx.fillStyle = "#E87B2E";
           ctx.font = "24px sans-serif";
           ctx.fillText("🤏", 195, 245);
@@ -1993,7 +2015,7 @@
         runCountdown();
       });
 
-      // ---------------- COUNTDOWN (was missing — this was the dead-end bug) ----------------
+      // ---------------- COUNTDOWN ----------------
       function runCountdown() {
         const seq = ["3", "2", "1", "GO"];
         let i = 0;
@@ -2038,8 +2060,21 @@
         locked = false;
         const q = questions[qIndex];
         const photo = document.getElementById('photoFrame');
-        photo.textContent = q.emoji;
+        photo.innerHTML = '';
         photo.classList.remove('flip-in'); void photo.offsetWidth; photo.classList.add('flip-in');
+
+        // Check if question contains a valid image path, fallback to emoji
+        if (q.img && q.img.trim() !== "") {
+          const imgElement = document.createElement('img');
+          imgElement.src = q.img;
+          imgElement.alt = "Quiz visual clue";
+          imgElement.onerror = () => {
+            photo.innerHTML = q.emoji;
+          };
+          photo.appendChild(imgElement);
+        } else {
+          photo.textContent = q.emoji;
+        }
 
         document.getElementById('qText').textContent = q.q;
         document.getElementById('feedbackText').textContent = '';
@@ -2087,7 +2122,6 @@
           setTimeout(() => {
             qIndex++;
 
-            // Trigger Monster Run Interruption after second correct question (Lap 2 complete)
             if (correctCount === 2) {
               triggerMonsterRun();
             } else if (qIndex >= questions.length) {
@@ -2137,9 +2171,6 @@
       }
 
       // ---------------- SCREEN 2: MONSTER RUN INTERRUPT ----------------
-      // Personal touch: he drinks Monster, she's the one who always orders it for him.
-      // She has to "restock" him with 10 taps — can visibly fills, claw marks scratch across it,
-      // and it pops open when full instead of a flat click counter.
       let monsterTaps = 0;
       const MONSTER_TAPS_NEEDED = 10;
 
@@ -2158,7 +2189,7 @@
         monsterTaps = 0;
         document.getElementById('canFill').style.height = '0%';
         document.getElementById('canClaws').innerHTML = '';
-        document.getElementById('canFill').closest('.can-shell').classList.remove('popped');
+        document.getElementById('canShell').className = 'can-shell';
         document.getElementById('monsterCounter').textContent = `Order status: 0/${MONSTER_TAPS_NEEDED} sips restocked`;
 
         const msgEl = document.getElementById('monsterText');
@@ -2188,6 +2219,31 @@
         setTimeout(() => mark.remove(), 700);
       }
 
+      function createFizzBubble() {
+        const shell = document.getElementById('canShell');
+        const fill = document.getElementById('canFill');
+        const fillHeight = parseFloat(fill.style.height) || 0;
+        if (fillHeight === 0) return;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'fizz-bubble';
+        const size = Math.random() * 4 + 2;
+        bubble.style.width = size + 'px';
+        bubble.style.height = size + 'px';
+        bubble.style.left = (Math.random() * 80 + 10) + '%';
+        bubble.style.bottom = `calc(${fillHeight}% - 6px)`;
+
+        shell.appendChild(bubble);
+
+        const riseHeight = 20 + Math.random() * 50;
+        bubble.animate([
+          { transform: 'translateY(0) scale(1)', opacity: 0.8 },
+          { transform: `translateY(-${riseHeight}px) scale(0.2)`, opacity: 0 }
+        ], { duration: 500 + Math.random() * 400, easing: 'ease-out' });
+
+        setTimeout(() => bubble.remove(), 900);
+      }
+
       document.getElementById('orderMonsterBtn').addEventListener('click', () => {
         sfx.crush();
         buzz(15);
@@ -2197,11 +2253,19 @@
         const fillPct = Math.min(100, (monsterTaps / MONSTER_TAPS_NEEDED) * 100);
         document.getElementById('canFill').style.height = fillPct + '%';
 
+        const shell = document.getElementById('canShell');
+        shell.classList.add('shaking');
+        setTimeout(() => shell.classList.remove('shaking'), 150);
+
+        for (let b = 0; b < 5; b++) {
+          createFizzBubble();
+        }
+
         const overlay = document.getElementById('monsterOverlay');
         overlay.classList.remove('shake'); void overlay.offsetWidth; overlay.classList.add('shake');
 
         if (monsterTaps >= MONSTER_TAPS_NEEDED) {
-          document.querySelector('.can-shell').classList.add('popped');
+          shell.classList.add('popped');
           sfx.correct();
           buzz([0, 40, 30, 40, 30, 100]);
           document.getElementById('monsterCounter').textContent = `Order placed. He'll be back.`;
@@ -2256,34 +2320,49 @@
       chkDev.addEventListener('change', validateCheckboxes);
 
       let termsAttempts = 0;
+      const MAX_DODGES = 6; 
+
       function teleportButton(e) {
-        if (termsAttempts < 3) {
+        if (termsAttempts < MAX_DODGES) {
           sfx.wrong();
           buzz(20);
-          const container = document.getElementById('termsBtnContainer');
-          const maxX = container.clientWidth - acceptTermsBtn.clientWidth;
-          const maxY = container.clientHeight - acceptTermsBtn.clientHeight;
 
-          const randomX = Math.floor(Math.random() * maxX);
-          const randomY = Math.floor(Math.random() * maxY);
+          const consoleWrapper = document.getElementById('console-wrapper');
+          const wrapperRect = consoleWrapper.getBoundingClientRect();
+          const btnRect = acceptTermsBtn.getBoundingClientRect();
 
+          const margin = 30;
+          const maxX = wrapperRect.width - btnRect.width - (margin * 2);
+          const maxY = wrapperRect.height - btnRect.height - (margin * 2);
+
+          const randomX = Math.floor(Math.random() * maxX) + margin;
+          const randomY = Math.floor(Math.random() * maxY) + margin;
+
+          acceptTermsBtn.style.position = 'absolute';
           acceptTermsBtn.style.left = randomX + 'px';
           acceptTermsBtn.style.top = randomY + 'px';
+
+          const rotation = (Math.random() - 0.5) * 40; 
+          const scale = 0.85 + Math.random() * 0.25; 
+          acceptTermsBtn.style.transform = `translate(0, 0) rotate(${rotation}deg) scale(${scale})`;
+
           termsAttempts++;
           if (e) e.preventDefault();
+        } else {
+          acceptTermsBtn.style.transform = 'translate(-50%, -50%) scale(1)';
         }
       }
 
       acceptTermsBtn.addEventListener('mouseenter', teleportButton);
       acceptTermsBtn.addEventListener('click', (e) => {
-        if (termsAttempts < 3) {
+        if (termsAttempts < MAX_DODGES) {
           teleportButton(e);
         } else {
           sfx.correct();
           buzz(35);
           showToast("Terms legally binding forever. 📜");
           showScreen('cert');
-          setTimeout(() => buzz(50), 450); // times with the seal-pop animation
+          setTimeout(() => buzz(50), 450); 
         }
       });
 
@@ -2458,8 +2537,6 @@
         setTimeout(triggerTrollFlash, 4200);
       }
 
-      // She only sees this for ~150ms. To see it again, she has to run the whole thing again —
-      // the app hard-resets right after, on purpose.
       function triggerTrollFlash() {
         const troll = document.getElementById('trollFlash');
         const content = document.getElementById('trollFlashContent');
@@ -2483,8 +2560,13 @@
         chkFood.checked = false;
         chkDev.checked = false;
         validateCheckboxes();
+        
+        // Reset absolute positioning styles on reset
+        acceptTermsBtn.style.position = '';
         acceptTermsBtn.style.left = '50%';
         acceptTermsBtn.style.top = '50%';
+        acceptTermsBtn.style.transform = 'translate(-50%, -50%)';
+        
         document.getElementById('submitComplaintBtn').innerHTML = "SUBMIT FORM R-026 ➔";
         document.getElementById('submitComplaintBtn').onclick = null;
         document.getElementById('ticketLog').textContent = "Waiting for submission packet...";
